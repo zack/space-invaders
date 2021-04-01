@@ -137,16 +137,22 @@ class Game {
     document.getElementById('points').textContent = score;
   }
 
+  updateAliens(aliens) {
+    // TODO
+  }
+
   updateGame(state) {
     if (state.pending_direction !== null) {
       state.player.move(state.pending_direction);
     }
 
+    const aliens = this.updateAliens(state.aliens);
+
     return {
       pending_direction: state.pending_direction,
       running: state.running,
       player: state.player,
-      aliens: state.aliens
+      aliens: aliens
     }
   }
 
