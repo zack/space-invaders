@@ -35,18 +35,48 @@ class Game {
 
   generateInitState() {
     const starting_player = this.generateStartingPlayer();
+    const aliens = this.generateStartingAliens();
 
     return {
       pending_direction: null,
       running: 1,
       player: starting_player,
+      aliens: aliens,
     };
+  }
+
+  generateStartingAliens() {
+    let aliens = [];
+
+    const alien_row_length = 11;
+    const alien_column_height = 5;
+
+    const alien_x_spacing = 35;
+    const alien_y_spacing = 35;
+
+    const starting_x_offset = 20;
+    const starting_y_offset = 20;
+
+    for (var x = 0; x < alien_row_length; x++) {
+      for (var y = 0; y < alien_column_height; y++) {
+        let alien = new Alien(
+          x * alien_x_spacing + starting_x_offset,
+          y * alien_y_spacing + starting_y_offset,
+          this.FIELD
+        );
+
+        aliens.push(alien);
+      }
+    }
+
+    return aliens;
   }
 
   generateStartingPlayer() {
     return new Player(
       this.GAME_WIDTH,
-      this.GAME_HEIGHT
+      this.GAME_HEIGHT,
+      this.FIELD
     );
   }
 
@@ -96,9 +126,10 @@ class Game {
     this.FIELD.clearRect(0, 0, this.CANVAS_WIDTH, this.CANVAS_HEIGHT);
   }
 
-  drawGame({direction, player}) {
+  drawGame({direction, player, aliens}) {
     this.clearField();
     player.draw(this.FIELD);
+    aliens.forEach((alien) => alien.draw());
     this.updateScore(0);
   }
 
@@ -114,7 +145,8 @@ class Game {
     return {
       pending_direction: state.pending_direction,
       running: state.running,
-      player: state.player
+      player: state.player,
+      aliens: state.aliens
     }
   }
 
@@ -160,9 +192,9 @@ class Game {
 }
 
 class Player {
-  constructor(game_width, game_height) {
-    this.player_x = game_width / 2;
-    this.player_y = game_height - 30;
+  constructor(game_width, game_height, canvas) {
+    this.x = game_width / 2;
+    this.y = game_height - 30;
 
     this.player_size = 20;
 
@@ -170,33 +202,54 @@ class Player {
     this.max_x = game_width - this.player_size;
 
     this.sprite = new Image();
-    this.sprite.src = 'ship.png';
+    this.sprite.src = 'assets/ship.png';
 
+    this.canvas = canvas;
   }
 
   getLocation() {
-    return {'x': this.player_x, 'y': this.player_y};
+    return {'x': this.x, 'y': this.y};
   }
 
   collidesWith(coord) {
-    return (coord['x'] === this.player_x && coord['y'] === this.player_y);
+    return (coord['x'] === this.x && coord['y'] === this.y);
   }
 
   move(direction) {
     if (direction === 'left') {
-      this.player_x = Math.max(this.min_x + this.player_size / 2, this.player_x - 5);
+      this.x = Math.max(this.min_x + this.player_size / 2, this.x - 5);
     } else if (direction === 'right') {
-      this.player_x = Math.min(this.max_x + this.player_size / 2, this.player_x + 5);
+      this.x = Math.min(this.max_x + this.player_size / 2, this.x + 5);
     }
   }
 
-  draw(canvas) {
-    canvas.drawImage(
+  draw() {
+    this.canvas.drawImage(
       this.sprite,
-      this.player_x - this.player_size/2,
-      this.player_y,
+      this.x - this.player_size/2,
+      this.y,
       this.player_size,
       this.player_size
+    );
+  }
+}
+
+class Alien {
+  constructor(x, y, canvas) {
+    this.sprite = new Image();
+    this.sprite.src = 'assets/alien.png';
+    this.x = x;
+    this.y = y;
+    this.canvas = canvas;
+  }
+
+  draw() {
+    this.canvas.drawImage(
+      this.sprite,
+      this.x,
+      this.y,
+      28,
+      20,
     );
   }
 }
