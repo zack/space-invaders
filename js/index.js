@@ -1,5 +1,5 @@
 class Game {
-  constructor(width, height, fps) {
+  constructor(width, height) {
     this.CANVAS = document.getElementById('space-invaders-field');
     this.FIELD = this.CANVAS.getContext('2d');
 
@@ -11,8 +11,6 @@ class Game {
 
     this.GAME_HEIGHT = this.CANVAS_HEIGHT;
     this.GAME_WIDTH  = this.CANVAS_WIDTH;
-
-    this.GAME_TICK_RATE = fps/60;
 
     this.DIRECTIONS = {
       'left':  ['a', 'A', 'ArrowLeft'],
@@ -38,10 +36,12 @@ class Game {
     const aliens = this.generateStartingAliens();
 
     return {
-      pending_direction: null,
+      pendingDirection: null,
       running: 1,
       player: starting_player,
       aliens: aliens,
+      alienDirection: 1,
+      alienSpeed: 1,
     };
   }
 
@@ -89,10 +89,11 @@ class Game {
     this.clearField(this.FIELD);
     this.game_state = this.generateInitState();
 
-    this.game_clock = setInterval(this.gameTick.bind(this), this.GAME_TICK_RATE);
+    this.game_clock = setInterval(this.gameTick.bind(this), 1000/60);
   }
 
   killGame() {
+    console.log('killGame');
     this.killGameClock();
     this.drawGameOver();
   }
@@ -137,22 +138,49 @@ class Game {
     document.getElementById('points').textContent = score;
   }
 
-  updateAliens(aliens) {
-    // TODO
+  updateAliens(state, aliensAreAtEdge) {
+    state.aliens.forEach((alien) => {
+      const currentCoords = alien.getLocation();
+      const alienMovement = state.alienDirection * state.alienSpeed;
+      const newX = currentCoords['x'] + alienMovement;
+      alien.updateCoords({'x': newX });
+      if (aliensAreAtEdge) {
+        alien.updateCoords({'y': currentCoords['y'] += 32 });
+      }
+    });
   }
 
+  aliensAreAtEdge(aliens, alienDirection) {
+    const leftmostX = aliens.reduce((memo, alien) => {
+      return Math.min(alien.getLocation()['x'], memo);
+    }, aliens[0].getLocation()['x']);
+
+    const rightmostX = aliens.reduce((memo, alien) => {
+      return Math.max(alien.getLocation()['x'], memo);
+    }, aliens[0].getLocation()['x']);
+
+    return (rightmostX >= this.GAME_WIDTH - 28 || leftmostX <= 1);
+  };
+
   updateGame(state) {
-    if (state.pending_direction !== null) {
-      state.player.move(state.pending_direction);
+    if (state.pendingDirection !== null) {
+      state.player.move(state.pendingDirection);
     }
 
-    const aliens = this.updateAliens(state.aliens);
+    const aliensAreAtEdge = this.aliensAreAtEdge(state.aliens, state.alienDirection);
+    if (aliensAreAtEdge){
+      state.alienDirection = state.alienDirection *= -1;
+    }
+
+    this.updateAliens(state, aliensAreAtEdge);
 
     return {
-      pending_direction: state.pending_direction,
+      pendingDirection: state.pendingDirection,
       running: state.running,
       player: state.player,
-      aliens: aliens
+      aliens: state.aliens,
+      alienDirection: state.alienDirection,
+      alienSpeed: state.alienSpeed,
     }
   }
 
@@ -168,7 +196,7 @@ class Game {
         }
       }, null);
 
-      this.game_state.pending_direction = selected_dir;
+      this.game_state.pendingDirection = selected_dir;
     }
   }
 
@@ -181,18 +209,33 @@ class Game {
       }
     }, null);
 
-    if (selected_dir === state.pending_direction) {
-      this.game_state.pending_direction = null;
+    if (selected_dir === state.pendingDirection) {
+      this.game_state.pendingDirection = null;
     }
+  }
+
+  playerLoses(state) {
+    const playerCoords = state.player.getLocation();
+
+    let playerLoses = false;
+
+    return state.aliens.reduce((memo, alien) => {
+      const alienCoords = alien.getLocation();
+      return (memo || (
+        playerCoords['y'] > alienCoords['y']
+        && playerCoords['y'] < alienCoords['y'] + 28
+        && playerCoords['x'] > alienCoords['x']
+        && playerCoords['x'] < alienCoords['x'] + 28
+      ));
+    }, false);
   }
 
   gameTick() {
     this.game_state = this.updateGame(this.game_state);
 
-    if (false) {
+    this.drawGame(this.game_state);
+    if (this.playerLoses(this.game_state)) {
       this.killGame();
-    } else {
-      this.drawGame(this.game_state);
     }
   }
 }
@@ -258,7 +301,16 @@ class Alien {
       20,
     );
   }
+
+  getLocation() {
+    return {'x': this.x, 'y': this.y};
+  }
+
+  updateCoords({x, y}) {
+    this.x = x || this.x;
+    this.y = y || this.y;
+  }
 }
 
-const game = new Game(500, 560, 60);
+const game = new Game(500, 560);
 game.startGame();
