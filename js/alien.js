@@ -5,6 +5,7 @@ class Alien {
     this.x = x;
     this.y = y;
     this.canvas = canvas;
+    this.direction = 1;
   }
 
   draw() {
@@ -24,5 +25,13 @@ class Alien {
   updateCoords({x, y}) {
     this.x = x || this.x;
     this.y = y || this.y;
+  }
+
+  getDirection() {
+    return this.direction;
+  }
+
+  setDirection(dir) {
+    this.direction = dir;
   }
 }

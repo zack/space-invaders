@@ -138,41 +138,40 @@ class Game {
     document.getElementById('points').textContent = score;
   }
 
-  updateAliens(state, aliensAreAtEdge) {
+  updateAliens(state) {
+    const leftmostX = state.aliens.reduce((memo, alien) => {
+      return Math.min(alien.getLocation()['x'], memo);
+    }, state.aliens[0].getLocation()['x']);
+
+    const rightmostX = state.aliens.reduce((memo, alien) => {
+      return Math.max(alien.getLocation()['x'], memo);
+    }, state.aliens[0].getLocation()['x']);
+
+    const aliensWidth = rightmostX - leftmostX;
+    state.alienSpeed = 350/aliensWidth;
+
+    const aliensAreAtEdge = rightmostX >= this.GAME_WIDTH - 28 || leftmostX <= 1;
+
     state.aliens.forEach((alien) => {
       const currentCoords = alien.getLocation();
-      const alienMovement = state.alienDirection * state.alienSpeed;
-      const newX = currentCoords['x'] + alienMovement;
-      alien.updateCoords({'x': newX });
+
       if (aliensAreAtEdge) {
+        alien.setDirection(alien.getDirection() * -1);
         alien.updateCoords({'y': currentCoords['y'] += 32 });
       }
+
+      const alienMovement = alien.getDirection() * state.alienSpeed;
+      const newX = currentCoords['x'] + alienMovement;
+      alien.updateCoords({'x': newX });
     });
   }
-
-  aliensAreAtEdge(aliens, alienDirection) {
-    const leftmostX = aliens.reduce((memo, alien) => {
-      return Math.min(alien.getLocation()['x'], memo);
-    }, aliens[0].getLocation()['x']);
-
-    const rightmostX = aliens.reduce((memo, alien) => {
-      return Math.max(alien.getLocation()['x'], memo);
-    }, aliens[0].getLocation()['x']);
-
-    return (rightmostX >= this.GAME_WIDTH - 28 || leftmostX <= 1);
-  };
 
   updateGame(state) {
     if (state.pendingDirection !== null) {
       state.player.move(state.pendingDirection);
     }
 
-    const aliensAreAtEdge = this.aliensAreAtEdge(state.aliens, state.alienDirection);
-    if (aliensAreAtEdge){
-      state.alienDirection = state.alienDirection *= -1;
-    }
-
-    this.updateAliens(state, aliensAreAtEdge);
+    this.updateAliens(state);
   }
 
   handleKeyDown(key, state) {
